@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ular Tangga Edukasi SMP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Fredoka & Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        .font-heading {
+            font-family: 'Fredoka', cursive;
+        }
+
+        /* 3D Dice Styling */
+        .dice-container {
+            perspective: 600px;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+
+        .dice {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+        }
+
+        .dice-face {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #ffffff;
+            border: 3px solid #cbd5e1;
+            border-radius: 16px;
+            display: grid;
+            grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+            padding: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .pip {
+            display: block;
+            background-color: #ef4444;
+            border-radius: 50%;
+            margin: auto;
+            width: 14px;
+            height: 14px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        /* Dice Face Transforms */
+        .face-1 { transform: translateZ(40px); }
+        .face-2 { transform: rotateY(180deg) translateZ(40px); }
+        .face-3 { transform: rotateY(-90deg) translateZ(40px); }
+        .face-4 { transform: rotateY(90deg) translateZ(40px); }
+        .face-5 { transform: rotateX(-90deg) translateZ(40px); }
+        .face-6 { transform: rotateX(90deg) translateZ(40px); }
+
+        /* Board grid styling */
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: 650px;
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            border: 4px solid #475569;
+        }
+
+        .board-cell {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 3px 5px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            position: relative;
+            box-sizing: border-box;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        @media (min-width: 640px) {
+            .board-cell {
+                font-size: 0.875rem;
+                padding: 5px 7px;
+            }
+        }
+
+        /* Special Highlights for Trigger Tiles */
+        .cell-ladder {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.2) 100%) !important;
+            box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.6);
+            animation: pulseLadder 2s infinite alternate;
+        }
+
+        .cell-snake {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.2) 100%) !important;
+            box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.6);
+            animation: pulseSnake 2s infinite alternate;
+        }
+
+        @keyframes pulseLadder {
+            from { box-shadow: inset 0 0 8px rgba(251, 191, 36, 0.5); }
+            to { box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.9); }
+        }
+
+        @keyframes pulseSnake {
+            from { box-shadow: inset 0 0 8px rgba(239, 68, 68, 0.5); }
+            to { box-shadow: inset 0 0 16px rgba(220, 38, 38, 0.9); }
+        }
+
+        /* Player Pawn */
+        .pawn {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            z-index: 35;
+            transition: all 0.35s ease-in-out;
+            filter: drop-shadow(0px 5px 8px rgba(0,0,0,0.8));
+        }
+
+        @media (min-width: 640px) {
+            .pawn {
+                width: 36px;
+                height: 36px;
+            }
+        }
+
+        /* SVG Overlay for Snakes and Ladders */
+        #svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .backdrop-blur-custom {
+            backdrop-filter: blur(8px);
+        }
+
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .highlight-tile {
+            animation: highlightGlow 0.8s infinite alternate !important;
+        }
+
+        @keyframes highlightGlow {
+            from { transform: scale(1); filter: brightness(1); }
+            to { transform: scale(1.05); filter: brightness(1.6); }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between p-2 sm:p-4">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- START SCREEN OVERLAY -->
+    <div id="start-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-custom">
+        <div class="bg-slate-800 border-2 border-indigo-500/50 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl transform transition-all">
+            <div class="inline-block bg-indigo-600/30 p-4 rounded-2xl mb-4 border border-indigo-400/30">
+                <i class="fa-solid fa-gamepad text-5xl text-yellow-400 animate-bounce"></i>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white font-heading tracking-wide mb-2">
+                ULAR TANGGA <span class="text-yellow-400">EDUKASI</span>
+            </h1>
+            <p class="text-slate-300 text-sm mb-6">Uji keberuntunganmu, buktikan pengetahuanmu tingkat SMP!</p>
+
+            <div class="space-y-4 mb-6">
+                <div class="text-left">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">NAMA PEMAIN</label>
+                    <input type="text" id="player-name-input" placeholder="Masukkan Nama Kamu..." 
+                           class="w-full px-4 py-3 bg-slate-700/80 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition"
+                           maxlength="15" value="Juara SMP">
+                </div>
+            </div>
+
+            <button id="btn-start-game" class="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-extrabold text-lg rounded-xl shadow-lg hover:shadow-yellow-500/30 transform active:scale-95 transition font-heading tracking-wider">
+                <i class="fa-solid fa-play mr-2"></i> MULAI PERMAINAN
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTAINER -->
+    <div class="max-w-7xl mx-auto w-full flex-grow flex flex-col">
+        <!-- HEADER NAVBAR -->
+        <header class="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3 sm:p-4 mb-4 backdrop-blur-md shadow-lg">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-indigo-600 to-violet-600 p-2.5 rounded-xl shadow-inner">
+                    <i class="fa-solid fa-graduation-cap text-2xl text-yellow-300"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold font-heading text-white leading-tight">Ular Tangga Edukasi</h2>
+                    <p class="text-xs text-indigo-300">Asah Otak & Capai Kotak 100!</p>
+                </div>
+            </div>
+            <button id="btn-reset-game" class="px-3 py-2 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span class="hidden sm:inline">Reset Game</span>
+            </button>
+        </header>
+
+        <!-- MAIN CONTENT GRID (BOARD + CONTROL PANEL) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow items-start">
+            
+            <!-- LEFT COLUMN: GAME BOARD (10x10) -->
+            <div class="lg:col-span-7 xl:col-span-8 flex flex-col items-center justify-center">
+                <div class="relative w-full max-w-[600px] bg-slate-800/60 p-2 sm:p-3 rounded-2xl border border-slate-700/60 backdrop-blur-md shadow-2xl">
+                    <!-- Board Grid -->
+                    <div id="board" class="board-grid">
+                        <!-- SVG overlay for rendering Snakes and Ladders visual shapes -->
+                        <svg id="svg-overlay"></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: CONTROL PANEL & INTERACTIVE LEGEND -->
+            <div class="lg:col-span-5 xl:col-span-4 space-y-4">
+                
+                <!-- PLAYER PROFILE CARD -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 shadow-xl">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 font-bold text-lg shadow-md">
+                                <i class="fa-solid fa-user-ninja"></i>
+                            </div>
+                            <div>
+                                <h3 id="display-player-name" class="font-bold text-white text-base leading-none">Player 1</h3>
+                                <span class="text-xs text-emerald-400 font-medium">Pemain Aktif</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-400 block">SKOR</span>
+                            <span id="stat-score" class="text-2xl font-extrabold text-yellow-400 font-heading">0</span>
+                        </div>
+                    </div>
+
+                    <!-- MINI STATS GRID -->
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700/50">
+                            <span class="text-slate-400 block">Posisi</span>
+                            <span id="stat-position" class="text-lg font-bold text-indigo-300">1</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700/50">
+                            <span class="text-slate-400 block">Benar / Salah</span>
+                            <span id="stat-answers" class="text-lg font-bold text-emerald-400">0 / 0</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700/50">
+                            <span class="text-slate-400 block">Rolls</span>
+                            <span id="stat-rolls" class="text-lg font-bold text-sky-400">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DICE & CONTROLLER CARD -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-5 shadow-xl text-center relative overflow-hidden">
+                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Lempar Dadu</h3>
+                    
+                    <!-- 3D Dice Component -->
+                    <div class="dice-container mb-6">
+                        <div id="dice" class="dice">
+                            <div class="dice-face face-1"><span class="pip" style="grid-area: 2/2"></span></div>
+                            <div class="dice-face face-2"><span class="pip" style="grid-area: 1/1"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                            <div class="dice-face face-3"><span class="pip" style="grid-area: 1/1"></span><span class="pip" style="grid-area: 2/2"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                            <div class="dice-face face-4"><span class="pip" style="grid-area: 1/1"></span><span class="pip" style="grid-area: 1/3"></span><span class="pip" style="grid-area: 3/1"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                            <div class="dice-face face-5"><span class="pip" style="grid-area: 1/1"></span><span class="pip" style="grid-area: 1/3"></span><span class="pip" style="grid-area: 2/2"></span><span class="pip" style="grid-area: 3/1"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                            <div class="dice-face face-6"><span class="pip" style="grid-area: 1/1"></span><span class="pip" style="grid-area: 1/3"></span><span class="pip" style="grid-area: 2/1"></span><span class="pip" style="grid-area: 2/3"></span><span class="pip" style="grid-area: 3/1"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                        </div>
+                    </div>
+
+                    <div id="dice-result" class="text-sm font-medium text-indigo-300 mb-4 h-6">
+                        Klik tombol untuk mengocok dadu!
+                    </div>
+
+                    <button id="btn-roll" class="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 transform active:scale-95 transition font-heading tracking-wide disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-dice mr-2 text-xl align-middle"></i> ROLL DICE
+                    </button>
+                </div>
+
+                <!-- NEW: DETAILED INTERACTIVE LEGEND PANEL -->
+                <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 shadow-xl text-xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                        <h4 class="font-bold text-slate-200 uppercase tracking-wider flex items-center">
+                            <i class="fa-solid fa-map-location-dot text-yellow-400 mr-2 text-sm"></i>
+                            Daftar Ular & Tangga
+                        </h4>
+                        <span class="text-[10px] text-slate-400">Klik untuk sorot</span>
+                    </div>
+
+                    <!-- LADDERS LIST -->
+                    <div>
+                        <span class="text-emerald-400 font-bold flex items-center mb-1.5">
+                            <i class="fa-solid fa-ladder-water mr-1.5 text-yellow-400 text-sm"></i> Tangga Naik (+5 Bonus):
+                        </span>
+                        <div id="ladder-legend-list" class="flex flex-wrap gap-1.5">
+                            <!-- Dynamic Ladder Badges -->
+                        </div>
+                    </div>
+
+                    <!-- SNAKES LIST -->
+                    <div class="pt-2 border-t border-slate-700/50">
+                        <span class="text-rose-400 font-bold flex items-center mb-1.5">
+                            <i class="fa-solid fa-staff-snake mr-1.5 text-rose-500 text-sm"></i> Ular Turun (-5 Penalti):
+                        </span>
+                        <div id="snake-legend-list" class="flex flex-wrap gap-1.5">
+                            <!-- Dynamic Snake Badges -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- QUESTION MODAL POP-UP -->
+    <div id="question-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-custom">
+        <div class="bg-slate-800 border border-indigo-500/40 rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl transform transition-all relative overflow-hidden">
+            <div class="flex justify-between items-center mb-4">
+                <span id="modal-category" class="px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
+                    Kategori Soal
+                </span>
+                <span class="text-xs text-slate-400"><i class="fa-solid fa-clock mr-1"></i> Soal Acak SMP</span>
+            </div>
+
+            <h3 id="modal-question-text" class="text-base sm:text-lg font-semibold text-white mb-6 leading-relaxed">
+                Pertanyaan akan muncul di sini...
+            </h3>
+
+            <div id="modal-options-container" class="space-y-3 mb-6"></div>
+
+            <button id="btn-submit-answer" disabled class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold rounded-xl shadow-lg transition font-heading disabled:opacity-40 disabled:cursor-not-allowed">
+                JAWAB SEKARANG
+            </button>
+        </div>
+    </div>
+
+    <!-- FEEDBACK MODAL -->
+    <div id="feedback-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-custom">
+        <div class="bg-slate-800 border rounded-3xl max-w-md w-full p-6 text-center shadow-2xl transform transition-all" id="feedback-card">
+            <div id="feedback-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold"></div>
+            <h3 id="feedback-title" class="text-2xl font-extrabold font-heading mb-2"></h3>
+            <p id="feedback-desc" class="text-slate-300 text-sm mb-4 leading-relaxed"></p>
+            <div id="feedback-explanation-box" class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 text-left text-xs text-slate-300 mb-6 hidden">
+                <span class="font-bold text-yellow-400 block mb-1">Pembahasan:</span>
+                <span id="feedback-explanation">...</span>
+            </div>
+            <button id="btn-close-feedback" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition font-heading">
+                LANJUTKAN
+            </button>
+        </div>
+    </div>
+
+    <!-- WINNER MODAL -->
+    <div id="win-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-custom">
+        <div class="bg-slate-800 border-2 border-yellow-500/50 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl relative">
+            <div class="inline-block bg-yellow-500/20 p-4 rounded-full mb-4 border border-yellow-400/30">
+                <i class="fa-solid fa-trophy text-5xl text-yellow-400 animate-bounce"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold font-heading text-white mb-1">SELAMAT!</h2>
+            <p class="text-yellow-400 font-semibold mb-6">KAMU BERHASIL MENCAPAI KOTAK 100!</p>
+
+            <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left text-sm space-y-2 mb-6">
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Skor Akhir:</span>
+                    <span id="win-score" class="font-bold text-yellow-400">0</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Total Dadu Rolled:</span>
+                    <span id="win-rolls" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Jawaban Benar:</span>
+                    <span id="win-correct" class="font-bold text-emerald-400">0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Akurasi Soal:</span>
+                    <span id="win-accuracy" class="font-bold text-sky-400">0%</span>
+                </div>
+            </div>
+
+            <button id="btn-play-again" class="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-extrabold text-lg rounded-xl shadow-lg font-heading">
+                <i class="fa-solid fa-rotate-right mr-2"></i> MAIN LAGI
+            </button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="mt-6 text-center text-xs text-slate-400 py-2">
+        &copy; Ular Tangga Edukasi Interaktif SMP • Dikembangkan untuk Pembelajaran Digital
+    </footer>
+
+    <script>
+        class SoundEngine {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playTone(freq, type, duration, delay = 0) {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + delay + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + delay);
+                    osc.stop(this.ctx.currentTime + delay + duration);
+                } catch (e) { console.error("Audio error", e); }
+            }
+            rollSound() { for (let i = 0; i < 6; i++) this.playTone(150 + Math.random() * 200, 'square', 0.05, i * 0.08); }
+            correctSound() { this.playTone(523.25, 'sine', 0.1, 0); this.playTone(659.25, 'sine', 0.1, 0.1); this.playTone(783.99, 'sine', 0.25, 0.2); }
+            wrongSound() { this.playTone(220, 'sawtooth', 0.15, 0); this.playTone(196, 'sawtooth', 0.3, 0.12); }
+            ladderSound() { [300, 400, 500, 600, 700, 800].forEach((freq, idx) => this.playTone(freq, 'sine', 0.08, idx * 0.06)); }
+            snakeSound() { [600, 520, 440, 360, 280].forEach((freq, idx) => this.playTone(freq, 'sawtooth', 0.1, idx * 0.08)); }
+            winSound() { [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => this.playTone(f, 'triangle', 0.3, i * 0.15)); }
+        }
+        const sound = new SoundEngine();
+
+        // ... existing questionBank array ...
+
+        // UPDATED AND EVENLY DISTRIBUTED LADDERS AND SNAKES POSITIONS
+        const LADDERS = { 
+            3: 22,   // Area Bawah
+            11: 39,  // Area Bawah-Tengah
+            20: 42,  // Area Bawah-Tengah
+            27: 84,  // Lompatan Besar dari Bawah ke Atas
+            36: 57,  // Area Tengah
+            51: 67,  // Area Tengah-Atas
+            71: 91,  // Area Atas
+            80: 99   // Area Atas Dekat Finish
+        };
+
+        const SNAKES = { 
+            17: 7,   // Area Bawah
+            29: 10,  // Tengah ke Bawah
+            47: 26,  // Tengah ke Bawah
+            54: 34,  // Tengah ke Bawah
+            62: 18,  // Atas ke Bawah
+            75: 45,  // Disebarkan ke Area 70-an menuju 45
+            87: 24,  // Tinggi ke Rendah
+            93: 73,  // Area Atas Dekat Finish
+            98: 79   // Area Atas Sangat Dekat Finish
+        };
+
+        let gameState = {
+            playerName: "Player 1",
+            currentPosition: 1,
+            score: 0,
+            totalRolls: 0,
+            correctAnswers: 0,
+            wrongAnswers: 0,
+            isRolling: false,
+            isAnimateMoving: false,
+            currentDiceValue: 0,
+            selectedOptionIndex: null,
+            currentQuestion: null
+        };
+
+        function getCellCoordinates(cellNum) {
+            const zeroBased = cellNum - 1;
+            const rowFromBottom = Math.floor(zeroBased / 10);
+            const colInRow = zeroBased % 10;
+            const gridRow = 9 - rowFromBottom;
+            let gridCol = (rowFromBottom % 2 === 0) ? colInRow : 9 - colInRow;
+            return { row: gridRow, col: gridCol };
+        }
+
+        function buildBoard() {
+            const boardEl = document.getElementById("board");
+            const oldCells = boardEl.querySelectorAll(".board-cell, .pawn");
+            oldCells.forEach(el => el.remove());
+
+            const colors = [
+                "bg-slate-800/80 text-slate-200", 
+                "bg-slate-900/80 text-slate-300"
+            ];
+
+            for (let row = 0; row < 10; row++) {
+                for (let col = 0; col < 10; col++) {
+                    const rowFromBottom = 9 - row;
+                    let colInRow = (rowFromBottom % 2 === 0) ? col : 9 - col;
+                    const cellNum = (rowFromBottom * 10) + colInRow + 1;
+                    
+                    const cellDiv = document.createElement("div");
+                    let baseColor = colors[(cellNum + row) % colors.length];
+                    
+                    // Add distinct indicator classes
+                    if (LADDERS[cellNum]) baseColor += " cell-ladder";
+                    if (SNAKES[cellNum]) baseColor += " cell-snake";
+
+                    cellDiv.className = `board-cell ${baseColor}`;
+                    cellDiv.id = `cell-${cellNum}`;
+                    cellDiv.style.gridRowStart = row + 1;
+                    cellDiv.style.gridColumnStart = col + 1;
+
+                    // Badges for triggering tiles
+                    let extraBadge = '';
+                    if (LADDERS[cellNum]) {
+                        extraBadge = `<span class="bg-amber-500/90 text-slate-950 font-black px-1.5 py-0.5 rounded text-[9px] shadow-sm flex items-center gap-0.5">🪜 NAIK ↑</span>`;
+                    } else if (SNAKES[cellNum]) {
+                        extraBadge = `<span class="bg-rose-600/90 text-white font-black px-1.5 py-0.5 rounded text-[9px] shadow-sm flex items-center gap-0.5">🐍 TURUN ↓</span>`;
+                    }
+
+                    cellDiv.innerHTML = `
+                        <div class="w-full flex justify-between items-center">
+                            <span class="font-extrabold text-white opacity-80">${cellNum}</span>
+                            ${extraBadge}
+                        </div>
+                    `;
+                    boardEl.appendChild(cellDiv);
+                }
+            }
+
+            // Player Pawn
+            const pawn = document.createElement("div");
+            pawn.id = "player-pawn";
+            pawn.className = "pawn flex items-center justify-center text-yellow-300 drop-shadow-md";
+            pawn.innerHTML = `<i class="fa-solid fa-chess-knight text-2xl sm:text-3xl text-yellow-400 drop-shadow-lg"></i>`;
+            boardEl.appendChild(pawn);
+
+            updatePawnPosition(gameState.currentPosition, false);
+            drawSnakesAndLaddersLines();
+            populateLegendPanel();
+        }
+
+        function drawSnakesAndLaddersLines() {
+            const svg = document.getElementById("svg-overlay");
+            svg.innerHTML = ''; // Clear SVG
+
+            // 1. RENDER LADDERS
+            Object.keys(LADDERS).forEach(start => {
+                const end = LADDERS[start];
+                const s = getCellCoordinates(parseInt(start));
+                const e = getCellCoordinates(parseInt(end));
+
+                const x1 = s.col * 10 + 5;
+                const y1 = s.row * 10 + 5;
+                const x2 = e.col * 10 + 5;
+                const y2 = e.row * 10 + 5;
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const offsetX = (-dy / length) * 1.8;
+                const offsetY = (dx / length) * 1.8;
+
+                // Rail 1
+                const rail1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                rail1.setAttribute("x1", `${x1 + offsetX}%`); rail1.setAttribute("y1", `${y1 + offsetY}%`);
+                rail1.setAttribute("x2", `${x2 + offsetX}%`); rail1.setAttribute("y2", `${y2 + offsetY}%`);
+                rail1.setAttribute("stroke", "#fbbf24"); rail1.setAttribute("stroke-width", "5");
+                rail1.setAttribute("stroke-linecap", "round");
+                rail1.setAttribute("filter", "drop-shadow(2px 4px 6px rgba(0,0,0,0.6))");
+
+                // Rail 2
+                const rail2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                rail2.setAttribute("x1", `${x1 - offsetX}%`); rail2.setAttribute("y1", `${y1 - offsetY}%`);
+                rail2.setAttribute("x2", `${x2 - offsetX}%`); rail2.setAttribute("y2", `${y2 - offsetY}%`);
+                rail2.setAttribute("stroke", "#d97706"); rail2.setAttribute("stroke-width", "5");
+                rail2.setAttribute("stroke-linecap", "round");
+                rail2.setAttribute("filter", "drop-shadow(2px 4px 6px rgba(0,0,0,0.6))");
+
+                svg.appendChild(rail1);
+                svg.appendChild(rail2);
+
+                // Rungs
+                const numRungs = Math.max(4, Math.floor(length / 6));
+                for (let i = 1; i < numRungs; i++) {
+                    const t = i / numRungs;
+                    const rx = x1 + t * dx;
+                    const ry = y1 + t * dy;
+
+                    const rung = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    rung.setAttribute("x1", `${rx + offsetX}%`); rung.setAttribute("y1", `${ry + offsetY}%`);
+                    rung.setAttribute("x2", `${rx - offsetX}%`); rung.setAttribute("y2", `${ry - offsetY}%`);
+                    rung.setAttribute("stroke", "#fef08a"); rung.setAttribute("stroke-width", "3");
+                    rung.setAttribute("stroke-linecap", "round");
+                    svg.appendChild(rung);
+                }
+
+                // Green Start Circle Indicator
+                const arrow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                arrow.setAttribute("cx", `${x1}%`); arrow.setAttribute("cy", `${y1}%`); arrow.setAttribute("r", "1.2%");
+                arrow.setAttribute("fill", "#10b981");
+                svg.appendChild(arrow);
+            });
+
+            // 2. RENDER SNAKES
+            Object.keys(SNAKES).forEach((start, index) => {
+                const end = SNAKES[start];
+                const s = getCellCoordinates(parseInt(start)); // Snake Head
+                const e = getCellCoordinates(parseInt(end));   // Snake Tail
+
+                const x1 = s.col * 10 + 5;
+                const y1 = s.row * 10 + 5;
+                const x2 = e.col * 10 + 5;
+                const y2 = e.row * 10 + 5;
+
+                // Alternate curve offsets to avoid overlap across the board
+                const curveDirection = index % 2 === 0 ? 1 : -1;
+                const mx = (x1 + x2) / 2 + (y1 > y2 ? 10 * curveDirection : -10 * curveDirection);
+                const my = (y1 + y2) / 2 + (x1 > x2 ? -10 * curveDirection : 10 * curveDirection);
+
+                const pathData = `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
+
+                // Snake Shadow
+                const shadowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                shadowPath.setAttribute("d", pathData);
+                shadowPath.setAttribute("fill", "none");
+                shadowPath.setAttribute("stroke", "rgba(0,0,0,0.5)");
+                shadowPath.setAttribute("stroke-width", "12");
+                shadowPath.setAttribute("stroke-linecap", "round");
+                svg.appendChild(shadowPath);
+
+                // Snake Body
+                const snakeBody = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                snakeBody.setAttribute("d", pathData);
+                snakeBody.setAttribute("fill", "none");
+                snakeBody.setAttribute("stroke", "#22c55e");
+                snakeBody.setAttribute("stroke-width", "8");
+                snakeBody.setAttribute("stroke-linecap", "round");
+                svg.appendChild(snakeBody);
+
+                // Snake Spine Pattern
+                const snakePattern = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                snakePattern.setAttribute("d", pathData);
+                snakePattern.setAttribute("fill", "none");
+                snakePattern.setAttribute("stroke", "#ef4444");
+                snakePattern.setAttribute("stroke-width", "3");
+                snakePattern.setAttribute("stroke-dasharray", "4 4");
+                snakePattern.setAttribute("stroke-linecap", "round");
+                svg.appendChild(snakePattern);
+
+                // Snake Head
+                const head = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                head.setAttribute("cx", `${x1}%`); head.setAttribute("cy", `${y1}%`);
+                head.setAttribute("r", "2.2%");
+                head.setAttribute("fill", "#dc2626");
+                head.setAttribute("stroke", "#ffffff"); head.setAttribute("stroke-width", "1.5");
+                svg.appendChild(head);
+
+                // Snake Eyes
+                const eye1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                eye1.setAttribute("cx", `${x1 - 0.7}%`); eye1.setAttribute("cy", `${y1 - 0.7}%`);
+                eye1.setAttribute("r", "0.6%"); eye1.setAttribute("fill", "#ffffff");
+                svg.appendChild(eye1);
+
+                // Snake Tail Tip
+                const tail = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                tail.setAttribute("cx", `${x2}%`); tail.setAttribute("cy", `${y2}%`);
+                tail.setAttribute("r", "1%"); tail.setAttribute("fill", "#15803d");
+                svg.appendChild(tail);
+            });
+        }
+
+        function populateLegendPanel() {
+            const ladderContainer = document.getElementById("ladder-legend-list");
+            const snakeContainer = document.getElementById("snake-legend-list");
+            ladderContainer.innerHTML = '';
+            snakeContainer.innerHTML = '';
+
+            Object.keys(LADDERS).forEach(start => {
+                const end = LADDERS[start];
+                const btn = document.createElement("button");
+                btn.className = "bg-emerald-950/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-500/40 px-2 py-1 rounded-lg text-[11px] font-bold flex items-center transition shadow-sm";
+                btn.innerHTML = `🪜 ${start} <i class="fa-solid fa-arrow-right mx-1 text-[9px] text-yellow-400"></i> ${end}`;
+                btn.onclick = () => highlightTiles([start, end]);
+                ladderContainer.appendChild(btn);
+            });
+
+            Object.keys(SNAKES).forEach(start => {
+                const end = SNAKES[start];
+                const btn = document.createElement("button");
+                btn.className = "bg-rose-950/80 hover:bg-rose-800 text-rose-300 border border-rose-500/40 px-2 py-1 rounded-lg text-[11px] font-bold flex items-center transition shadow-sm";
+                btn.innerHTML = `🐍 ${start} <i class="fa-solid fa-arrow-right mx-1 text-[9px] text-rose-400"></i> ${end}`;
+                btn.onclick = () => highlightTiles([start, end]);
+                snakeContainer.appendChild(btn);
+            });
+        }
+
+        // Highlight cells on board when clicking legend
+        function highlightTiles(cellNums) {
+            cellNums.forEach(num => {
+                const el = document.getElementById(`cell-${num}`);
+                if (el) {
+                    el.classList.add("highlight-tile");
+                    setTimeout(() => el.classList.remove("highlight-tile"), 2000);
+                }
+            });
+        }
+
+        function updatePawnPosition(cellNum, animate = true) {
+            const pawn = document.getElementById("player-pawn");
+            const coords = getCellCoordinates(cellNum);
+            
+            const leftPercent = coords.col * 10 + 1.2;
+            const topPercent = coords.row * 10 + 1.2;
+
+            pawn.style.transition = animate ? "all 0.35s ease-in-out" : "none";
+            pawn.style.left = `${leftPercent}%`;
+            pawn.style.top = `${topPercent}%`;
+
+            document.getElementById("stat-position").innerText = cellNum;
+        }
+
+        const diceTransformations = {
+            1: 'rotateX(0deg) rotateY(0deg)',
+            2: 'rotateX(0deg) rotateY(-180deg)',
+            3: 'rotateX(0deg) rotateY(90deg)',
+            4: 'rotateX(0deg) rotateY(-90deg)',
+            5: 'rotateX(90deg) rotateY(0deg)',
+            6: 'rotateX(-90deg) rotateY(0deg)'
+        };
+
+        function rollDice() {
+            if (gameState.isRolling || gameState.isAnimateMoving) return;
+
+            gameState.isRolling = true;
+            document.getElementById("btn-roll").disabled = true;
+            document.getElementById("dice-result").innerText = "Mengocok dadu...";
+
+            sound.rollSound();
+
+            const diceEl = document.getElementById("dice");
+            const randomNumber = Math.floor(Math.random() * 6) + 1;
+            gameState.currentDiceValue = randomNumber;
+            gameState.totalRolls++;
+
+            const extraX = (Math.floor(Math.random() * 4) + 4) * 360;
+            const extraY = (Math.floor(Math.random() * 4) + 4) * 360;
+            
+            diceEl.style.transform = `rotateX(${extraX}deg) rotateY(${extraY}deg)`;
+
+            setTimeout(() => {
+                diceEl.style.transform = diceTransformations[randomNumber];
+                document.getElementById("dice-result").innerText = `Angka Dadu: ${randomNumber}`;
+                updateStatsUI();
+
+                setTimeout(() => {
+                    gameState.isRolling = false;
+                    openQuestionModal();
+                }, 800);
+
+            }, 1200);
+        }
+
+        function openQuestionModal() {
+            const randomIndex = Math.floor(Math.random() * questionBank.length);
+            gameState.currentQuestion = questionBank[randomIndex];
+            gameState.selectedOptionIndex = null;
+
+            document.getElementById("modal-category").innerText = gameState.currentQuestion.category;
+            document.getElementById("modal-question-text").innerText = gameState.currentQuestion.question;
+
+            const optionsContainer = document.getElementById("modal-options-container");
+            optionsContainer.innerHTML = '';
+
+            const btnSubmit = document.getElementById("btn-submit-answer");
+            btnSubmit.disabled = true;
+
+            const prefixes = ["A", "B", "C", "D"];
+            gameState.currentQuestion.options.forEach((optText, idx) => {
+                const btn = document.createElement("button");
+                btn.className = "w-full text-left p-3.5 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 rounded-xl text-slate-100 flex items-center space-x-3 transition font-medium text-sm";
+                btn.onclick = () => selectOption(idx);
+                btn.id = `option-btn-${idx}`;
+                btn.innerHTML = `
+                    <span class="w-7 h-7 rounded-lg bg-slate-800 text-yellow-400 flex items-center justify-center font-bold text-xs border border-slate-600">${prefixes[idx]}</span>
+                    <span class="flex-grow">${optText}</span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById("question-modal").classList.remove("hidden");
+        }
+
+        function selectOption(index) {
+            gameState.selectedOptionIndex = index;
+            const container = document.getElementById("modal-options-container");
+            const buttons = container.querySelectorAll("button");
+            
+            buttons.forEach((btn, idx) => {
+                if (idx === index) {
+                    btn.className = "w-full text-left p-3.5 bg-indigo-600/40 border-2 border-indigo-400 rounded-xl text-white flex items-center space-x-3 transition font-semibold text-sm";
+                } else {
+                    btn.className = "w-full text-left p-3.5 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 rounded-xl text-slate-100 flex items-center space-x-3 transition font-medium text-sm opacity-60";
+                }
+            });
+
+            document.getElementById("btn-submit-answer").disabled = false;
+        }
+
+        function submitAnswer() {
+            if (gameState.selectedOptionIndex === null) return;
+
+            document.getElementById("question-modal").classList.add("hidden");
+            const isCorrect = (gameState.selectedOptionIndex === gameState.currentQuestion.answer);
+
+            if (isCorrect) {
+                gameState.correctAnswers++;
+                gameState.score += 10;
+                sound.correctSound();
+                showFeedbackModal(
+                    true, 
+                    "🎉 JAWABAN BENAR!", 
+                    `Kamu mendapatkan +10 Skor! Pionmu akan melangkah ${gameState.currentDiceValue} langkah.`
+                );
+            } else {
+                gameState.wrongAnswers++;
+                sound.wrongSound();
+                const correctText = gameState.currentQuestion.options[gameState.currentQuestion.answer];
+                showFeedbackModal(
+                    false, 
+                    "❌ JAWABAN SALAH!", 
+                    `Jawaban yang benar adalah: <strong class="text-emerald-400">${correctText}</strong>. Kamu tetap berada di posisi semula.`,
+                    gameState.currentQuestion.explanation
+                );
+            }
+
+            updateStatsUI();
+        }
+
+        function showFeedbackModal(isCorrect, title, desc, explanation = null) {
+            const modal = document.getElementById("feedback-modal");
+            const card = document.getElementById("feedback-card");
+            const iconBox = document.getElementById("feedback-icon");
+            const titleEl = document.getElementById("feedback-title");
+            const descEl = document.getElementById("feedback-desc");
+            const expBox = document.getElementById("feedback-explanation-box");
+            const expEl = document.getElementById("feedback-explanation");
+
+            if (isCorrect) {
+                card.className = "bg-slate-800 border-2 border-emerald-500/50 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl";
+                iconBox.className = "w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 text-3xl font-bold border border-emerald-500/40";
+                iconBox.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                titleEl.className = "text-2xl font-extrabold font-heading text-emerald-400 mb-2";
+                expBox.classList.add("hidden");
+            } else {
+                card.className = "bg-slate-800 border-2 border-rose-500/50 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl";
+                iconBox.className = "w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4 text-3xl font-bold border border-rose-500/40";
+                iconBox.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+                titleEl.className = "text-2xl font-extrabold font-heading text-rose-400 mb-2";
+                if (explanation) {
+                    expEl.innerText = explanation;
+                    expBox.classList.remove("hidden");
+                } else {
+                    expBox.classList.add("hidden");
+                }
+            }
+
+            titleEl.innerText = title;
+            descEl.innerHTML = desc;
+
+            const closeBtn = document.getElementById("btn-close-feedback");
+            closeBtn.onclick = () => {
+                modal.classList.add("hidden");
+                if (isCorrect) {
+                    executeMovePawn(gameState.currentDiceValue);
+                } else {
+                    document.getElementById("btn-roll").disabled = false;
+                }
+            };
+
+            modal.classList.remove("hidden");
+        }
+
+        async function executeMovePawn(steps) {
+            gameState.isAnimateMoving = true;
+            document.getElementById("btn-roll").disabled = true;
+
+            const targetPosition = gameState.currentPosition + steps;
+
+            if (targetPosition > 100) {
+                document.getElementById("dice-result").innerText = `Langkah melebihi 100! Kamu tetap di kotak ${gameState.currentPosition}`;
+                gameState.isAnimateMoving = false;
+                document.getElementById("btn-roll").disabled = false;
+                return;
+            }
+
+            for (let i = 0; i < steps; i++) {
+                gameState.currentPosition++;
+                updatePawnPosition(gameState.currentPosition, true);
+                sound.playTone(400 + i * 50, 'sine', 0.08);
+                await new Promise(r => setTimeout(r, 350));
+            }
+
+            if (LADDERS[gameState.currentPosition]) {
+                const ladderTarget = LADDERS[gameState.currentPosition];
+                document.getElementById("dice-result").innerText = `🎉 Mendarat di Tangga! Naik ke kotak ${ladderTarget}`;
+                sound.ladderSound();
+                gameState.score += 5;
+                await new Promise(r => setTimeout(r, 500));
+                gameState.currentPosition = ladderTarget;
+                updatePawnPosition(gameState.currentPosition, true);
+                updateStatsUI();
+            } else if (SNAKES[gameState.currentPosition]) {
+                const snakeTarget = SNAKES[gameState.currentPosition];
+                document.getElementById("dice-result").innerText = `🐍 Terkena Ular! Turun ke kotak ${snakeTarget}`;
+                sound.snakeSound();
+                gameState.score = Math.max(0, gameState.score - 5);
+                await new Promise(r => setTimeout(r, 500));
+                gameState.currentPosition = snakeTarget;
+                updatePawnPosition(gameState.currentPosition, true);
+                updateStatsUI();
+            }
+
+            if (gameState.currentPosition === 100) {
+                triggerWin();
+            } else {
+                gameState.isAnimateMoving = false;
+                document.getElementById("btn-roll").disabled = false;
+            }
+        }
+
+        function triggerWin() {
+            sound.winSound();
+            document.getElementById("win-score").innerText = gameState.score;
+            document.getElementById("win-rolls").innerText = gameState.totalRolls;
+            document.getElementById("win-correct").innerText = `${gameState.correctAnswers} Soal`;
+            
+            const totalQuestions = gameState.correctAnswers + gameState.wrongAnswers;
+            const accuracy = totalQuestions > 0 ? Math.round((gameState.correctAnswers / totalQuestions) * 100) : 0;
+            document.getElementById("win-accuracy").innerText = `${accuracy}%`;
+
+            document.getElementById("win-modal").classList.remove("hidden");
+            startConfetti();
+        }
+
+        let confettiAnimationId = null;
+        function startConfetti() {
+            const canvas = document.getElementById("confetti-canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const pieces = [];
+            const colors = ['#f59e0b', '#10b981', '#6366f1', '#ec4899', '#3b82f6'];
+
+            for (let i = 0; i < 100; i++) {
+                pieces.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speed: Math.random() * 3 + 2,
+                    angle: Math.random() * 360
+                });
+            }
+
+            function animateConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    p.y += p.speed;
+                    p.angle += 2;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.angle * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+
+                    if (p.y > canvas.height) {
+                        p.y = -10;
+                        p.x = Math.random() * canvas.width;
+                    }
+                });
+                confettiAnimationId = requestAnimationFrame(animateConfetti);
+            }
+            animateConfetti();
+        }
+
+        function stopConfetti() {
+            if (confettiAnimationId) {
+                cancelAnimationFrame(confettiAnimationId);
+                const canvas = document.getElementById("confetti-canvas");
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function updateStatsUI() {
+            document.getElementById("stat-score").innerText = gameState.score;
+            document.getElementById("stat-answers").innerText = `${gameState.correctAnswers} / ${gameState.wrongAnswers}`;
+            document.getElementById("stat-rolls").innerText = gameState.totalRolls;
+            document.getElementById("display-player-name").innerText = gameState.playerName;
+        }
+
+        function resetGame() {
+            gameState.currentPosition = 1;
+            gameState.score = 0;
+            gameState.totalRolls = 0;
+            gameState.correctAnswers = 0;
+            gameState.wrongAnswers = 0;
+            gameState.isRolling = false;
+            gameState.isAnimateMoving = false;
+
+            document.getElementById("win-modal").classList.add("hidden");
+            document.getElementById("question-modal").classList.add("hidden");
+            document.getElementById("feedback-modal").classList.add("hidden");
+            document.getElementById("btn-roll").disabled = false;
+            document.getElementById("dice-result").innerText = "Klik tombol untuk mengocok dadu!";
+
+            stopConfetti();
+            updatePawnPosition(1, false);
+            updateStatsUI();
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            buildBoard();
+
+            document.getElementById("btn-start-game").onclick = () => {
+                const nameInput = document.getElementById("player-name-input").value.trim();
+                if (nameInput !== "") {
+                    gameState.playerName = nameInput;
+                }
+                document.getElementById("start-screen").classList.add("hidden");
+                updateStatsUI();
+            };
+
+            document.getElementById("btn-roll").onclick = rollDice;
+            document.getElementById("btn-submit-answer").onclick = submitAnswer;
+            document.getElementById("btn-play-again").onclick = resetGame;
+
+            document.getElementById("btn-reset-game").onclick = () => {
+                if (confirm("Apakah kamu yakin ingin memulainya dari awal lagi?")) {
+                    resetGame();
+                }
+            };
+
+            window.addEventListener("resize", drawSnakesAndLaddersLines);
+        });
+    </script>
+</body>
+</html>
